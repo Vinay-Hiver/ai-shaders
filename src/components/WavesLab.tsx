@@ -436,6 +436,7 @@ export default function WavesLab({ embed = false, active = true }: { embed?: boo
   const [fire, setFire] = useState<Fire>(FIRE0)
   const [w, setW] = useState<W>(W0)
   const [showControls, setShowControls] = useState(false)
+  const [copied, setCopied] = useState(false)
   const fireRef = useRef(fire); fireRef.current = fire
   const wRef = useRef(w); wRef.current = w
 
@@ -655,7 +656,10 @@ export default function WavesLab({ embed = false, active = true }: { embed?: boo
         <S label="angle°" v={fire.angle} min={0} max={360} step={1} d={0} on={v=>setF('angle',v)} />
         <S label="speed" v={fire.speed} min={0} max={3} step={0.01} on={v=>setF('speed',v)} />
         <S label="scale" v={fire.scale} min={1.6} max={4} step={0.01} on={v=>setF('scale',v)} />
-        <button onClick={()=>console.log('WAVES', JSON.stringify({waves:w,wavesBg:fire},null,2))} style={{width:'100%',padding:10,marginTop:14,background:'#f1f5f9',color:'#334155',border:0,borderRadius:6,fontWeight:500,cursor:'pointer'}}>Log values</button>
+        <div style={{display:'flex',gap:8,marginTop:14}}>
+          <button onClick={()=>{navigator.clipboard.writeText(JSON.stringify({waves:w,wavesBg:fire},null,2));setCopied(true);setTimeout(()=>setCopied(false),5000);}} style={{flex:1,padding:10,background:'#f1f5f9',color:'#334155',border:0,borderRadius:6,fontWeight:500,cursor:'pointer'}}>{copied?'Values copied':'Copy values'}</button>
+          <button onClick={()=>{setFire({...FIRE0});setW({...W0});}} style={{flex:1,padding:10,background:'#f1f5f9',color:'#334155',border:0,borderRadius:6,fontWeight:500,cursor:'pointer'}}>Reset to default</button>
+        </div>
       </div>
   )
   const toggleBtn = (

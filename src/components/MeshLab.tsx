@@ -368,6 +368,7 @@ export default function MeshLab({ embed = false, active = true }: { embed?: bool
   const [mesh, setMesh] = useState<Mesh>(MESH0)
   const [w, setW] = useState<W>(W0)
   const [showControls, setShowControls] = useState(false)
+  const [copied, setCopied] = useState(false)
   const meshRef = useRef(mesh); meshRef.current = mesh
   const wRef = useRef(w); wRef.current = w
 
@@ -551,7 +552,10 @@ export default function MeshLab({ embed = false, active = true }: { embed?: bool
         <S label="rotation" v={mesh.rotation} min={0} max={360} step={1} d={0} on={v=>setM('rotation',v)} />
         <S label="offsetX" v={mesh.offsetX} min={-1} max={1} step={0.01} on={v=>setM('offsetX',v)} />
         <S label="offsetY" v={mesh.offsetY} min={-1} max={1} step={0.01} on={v=>setM('offsetY',v)} />
-        <button onClick={()=>console.log('WAVES+MESH', JSON.stringify({waves:w,mesh},null,2))} style={{width:'100%',padding:10,marginTop:14,background:'#f1f5f9',color:'#334155',border:0,borderRadius:6,fontWeight:500,cursor:'pointer'}}>Log values</button>
+        <div style={{display:'flex',gap:8,marginTop:14}}>
+          <button onClick={()=>{navigator.clipboard.writeText(JSON.stringify({waves:w,mesh},null,2));setCopied(true);setTimeout(()=>setCopied(false),5000);}} style={{flex:1,padding:10,background:'#f1f5f9',color:'#334155',border:0,borderRadius:6,fontWeight:500,cursor:'pointer'}}>{copied?'Values copied':'Copy values'}</button>
+          <button onClick={()=>{setMesh({...MESH0});setW({...W0});}} style={{flex:1,padding:10,background:'#f1f5f9',color:'#334155',border:0,borderRadius:6,fontWeight:500,cursor:'pointer'}}>Reset to default</button>
+        </div>
       </div>
   )
   const toggleBtn = (

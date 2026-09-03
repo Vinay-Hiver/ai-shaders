@@ -97,11 +97,7 @@ export default function OnboardingScreen() {
         </div>
       </section>
 
-      {/* Shader option switcher */}
-      <div style={{ position: 'fixed', left: 16, bottom: 16, display: 'flex', gap: 8, zIndex: 9999 }}>
-        <button style={swBtn(opt === 1)} title="Waves" onClick={() => setOpt(1)}>1</button>
-        <button style={swBtn(opt === 2)} title="Mesh" onClick={() => setOpt(2)}>2</button>
-      </div>
+
     </div>
   )
 }
