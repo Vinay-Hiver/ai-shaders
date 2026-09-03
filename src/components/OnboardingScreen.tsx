@@ -1,16 +1,10 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import './OnboardingScreen.css'
 import WavesLab from './WavesLab'
 import MeshLab from './MeshLab'
 
 export default function OnboardingScreen() {
-  const [opt, setOpt] = useState<1 | 2>(1)
-  const swBtn = (active: boolean): React.CSSProperties => ({
-    width: 40, height: 40, borderRadius: 10, border: 'none', cursor: 'pointer',
-    fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-    background: active ? '#2563eb' : '#ffffff', color: active ? '#fff' : '#334155',
-    boxShadow: '0 2px 8px rgba(15,23,42,0.18)', transition: 'all .15s',
-  })
+  const [opt] = useState<1 | 2>(1)
   return (
     <div className="onboarding">
       {/* ---------------- Left: form panel ---------------- */}
