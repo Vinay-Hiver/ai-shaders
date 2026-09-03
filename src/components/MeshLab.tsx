@@ -559,13 +559,13 @@ export default function MeshLab({ embed = false, active = true }: { embed?: bool
       </div>
   )
   const toggleBtn = (
-    <button onClick={()=>setShowControls(s=>!s)} style={{ position:'fixed', top:16, right:16, zIndex:9999, padding:'8px 14px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, background:'#0f172a', color:'#fff', boxShadow:'0 2px 8px rgba(15,23,42,0.25)', fontFamily:"'Hanken Grotesk',sans-serif" }}>{showControls ? 'Hide controls' : 'Controls'}</button>
+    <button onClick={()=>setShowControls(s=>!s)} style={{ position:'fixed', top:16, left:16, zIndex:9999, padding:'8px 14px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, background:'#0f172a', color:'#fff', boxShadow:'0 2px 8px rgba(15,23,42,0.25)', fontFamily:"'Hanken Grotesk',sans-serif" }}>{showControls ? 'Hide controls' : 'Controls'}</button>
   )
   if (embed) return (
     <>
       <canvas ref={ref} style={{ width:'100%', height:'100%', display:'block' }} />
       {active && toggleBtn}
-      {active && showControls && <div style={{ position:'fixed', top:0, right:0, height:'100vh', zIndex:9998, fontFamily:"'Hanken Grotesk',sans-serif" }}>{controls}</div>}
+      {active && showControls && <div style={{ position:'fixed', top:0, left:0, height:'100vh', zIndex:9998, fontFamily:"'Hanken Grotesk',sans-serif" }}>{controls}</div>}
     </>
   )
   return (
