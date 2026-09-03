@@ -1,0 +1,50 @@
+/* ============================================================
+   HOT Design System — tokens
+   Derived from /design-tokens/colors.md and typography.md
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500&display=swap');
+
+:root {
+  /* ---- Font ---- */
+  --font-family: 'Hanken Grotesk', system-ui, sans-serif;
+
+  /* ---- Type scale ---- */
+  --heading-h4-size: 20px;   --heading-h4-line: 24px;   --heading-h4-weight: 500;
+  --label-large-size: 18px;  --label-large-line: 28px;  --label-large-weight: 500;
+  --label-small-size: 14px;  --label-small-line: 20px;  --label-small-weight: 500;
+  --body-small-size: 14px;   --body-small-line: 20px;   --body-small-weight: 400;
+  --body-xsmall-size: 12px;  --body-xsmall-line: 18px;  --body-xsmall-weight: 400;
+
+  /* ---- Slate primitives ---- */
+  --slate-900: #0f172a;
+  --slate-700: #334155;
+  --slate-500: #64758b;
+  --slate-400: #94a3b8;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+
+  /* ---- Blue primitives ---- */
+  --blue-700: #0c3e9d;
+
+  /* ---- Semantic aliases (used by components) ---- */
+  --slateSurfaceWhite: #ffffff;
+  --slateSurfaceSubtle100: var(--slate-100);
+  --slateSurfaceSubtle200: var(--slate-200);
+  --slateBorderLight: var(--slate-200);
+  --slateTextTitle: var(--slate-900);
+  --slateTextBody: var(--slate-700);
+  --slateTextSubtle: var(--slate-500);
+  --slateTextDisabled: var(--slate-400);
+  --slateIconsActive: var(--slate-700);
+  --linkText: var(--blue-700);
+
+  /* ---- Accent (progress) ---- */
+  --progressFill: #ff712a;
+
+  /* ---- Radius ---- */
+  --radius-6: 6px;
+  --radius-full: 999px;
+
+  /* ---- Shader placeholder ---- */
+  --shader-placeholder: #d9d9d9;
+}

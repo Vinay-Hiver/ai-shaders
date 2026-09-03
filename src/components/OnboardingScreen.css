@@ -1,0 +1,249 @@
+/* =========================================================
+   Onboarding — 01_00
+   Left: form panel. Right: shader placeholder (grey fill).
+   ========================================================= */
+
+.onboarding {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  background: var(--slateSurfaceWhite);
+}
+
+/* ---- Panels ---- */
+.panel { position: relative; }
+
+.panel--form {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px clamp(24px, 7vw, 100px);
+  min-width: 0;
+}
+
+.panel--visual {
+  flex: 1 1 50%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Shader placeholder — replaced by the WebGL shader later */
+.shader-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--shader-placeholder);
+}
+
+/* ---- Form column ---- */
+.form-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 437px;
+  max-width: 100%;
+  min-height: 652px;
+}
+
+.form-top {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  flex: 1 1 auto;
+}
+
+.logo {
+  width: 105px;
+  height: 44px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---- Progress ---- */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-6);
+  background: transparent;
+  cursor: pointer;
+}
+.icon-button:hover { background: var(--slateSurfaceSubtle100); }
+
+.progress {
+  position: relative;
+  width: 100px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--slateSurfaceSubtle200);
+  overflow: hidden;
+}
+.progress__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: var(--radius-full);
+  background: var(--progressFill);
+}
+.progress__label {
+  font-size: var(--body-small-size);
+  line-height: var(--body-small-line);
+  font-weight: var(--body-small-weight);
+  color: var(--slateTextSubtle);
+  white-space: nowrap;
+}
+
+/* ---- Title ---- */
+.title-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.title {
+  margin: 0;
+  font-size: var(--label-large-size);
+  line-height: var(--label-large-line);
+  font-weight: var(--label-large-weight);
+  color: var(--slateTextTitle);
+}
+.subtitle {
+  margin: 0;
+  font-size: var(--body-small-size);
+  line-height: var(--body-small-line);
+  font-weight: var(--body-small-weight);
+  color: var(--slateTextBody);
+}
+
+/* ---- Form fields ---- */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-label {
+  font-size: var(--label-small-size);
+  line-height: var(--label-small-line);
+  font-weight: var(--label-small-weight);
+  color: var(--slateTextBody);
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 10px 12px;
+  border: 1px solid var(--slateBorderLight);
+  border-radius: var(--radius-6);
+  background: var(--slateSurfaceWhite);
+}
+.input:focus-within {
+  border-color: var(--slateTextDisabled);
+}
+.input__prefix {
+  font-size: var(--body-small-size);
+  line-height: var(--body-small-line);
+  color: var(--slateTextSubtle);
+  white-space: nowrap;
+}
+.input__control {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--body-small-size);
+  line-height: var(--body-small-line);
+  color: var(--slateTextBody);
+  background: transparent;
+}
+.input__control::placeholder { color: var(--slateTextDisabled); }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--radius-6);
+  cursor: pointer;
+  font-size: var(--label-small-size);
+  line-height: var(--label-small-line);
+  font-weight: var(--label-small-weight);
+}
+.btn--primary {
+  align-self: flex-start;
+  height: 40px;
+  padding: 4px 12px;
+  min-width: 121px;
+  background: var(--slateTextTitle);
+  color: var(--slateSurfaceWhite);
+}
+.btn--primary:hover { opacity: 0.92; }
+
+.btn--ghost {
+  height: 32px;
+  padding: 4px 12px;
+  background: var(--slateSurfaceSubtle100);
+  color: var(--slateTextBody);
+}
+.btn--ghost:hover { background: var(--slateSurfaceSubtle200); }
+
+/* ---- Terms ---- */
+.terms {
+  margin: 0;
+  max-width: 305px;
+  font-size: var(--body-small-size);
+  line-height: var(--body-small-line);
+  color: var(--slateIconsActive);
+}
+.terms a {
+  color: var(--linkText);
+  text-decoration: none;
+}
+.terms a:hover { text-decoration: underline; }
+
+/* ---- Help ---- */
+.help {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 137px;
+}
+.help__label {
+  font-size: var(--body-xsmall-size);
+  line-height: var(--body-xsmall-line);
+  color: var(--slateTextSubtle);
+}
+
+/* ---- Responsive: stack on narrow screens ---- */
+@media (max-width: 900px) {
+  .onboarding { flex-direction: column; }
+  .panel--visual { flex: 0 0 260px; }
+  .panel--form { flex: 1 1 auto; }
+}

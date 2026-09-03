@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chained Pipeline — Fire → Water → Glass</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#111; height:100vh; display:flex; font-family:'Hanken Grotesk',sans-serif; overflow:hidden; }
+  #stage { flex:1; min-width:0; position:relative; background:#000; }
+  canvas { display:block; width:100%; height:100%; }
+  #panel { width:310px; background:#fff; padding:18px; overflow-y:auto; box-shadow:-2px 0 8px rgba(0,0,0,.1); }
+  h1 { font-size:18px; color:#0f172a; margin-bottom:4px; }
+  .desc { font-size:12px; color:#64758b; margin-bottom:8px; line-height:1.5; }
+  .st { font-size:11px; font-weight:700; letter-spacing:.5px; color:#0f172a; margin:18px 0 10px; display:flex; align-items:center; gap:8px; border-top:1px solid #e2e8f0; padding-top:14px; }
+  .cg { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  label { font-size:13px; color:#334155; font-weight:500; min-width:86px; }
+  .v { font-size:12px; color:#64758b; width:40px; text-align:right; font-variant-numeric:tabular-nums; }
+  input[type=range]{ flex:1; height:4px; border-radius:2px; background:#e2e8f0; -webkit-appearance:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#0f172a; cursor:pointer; }
+  input[type=color]{ width:34px; height:26px; border:1px solid #e2e8f0; border-radius:5px; padding:0; background:#fff; cursor:pointer; }
+  .presets{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px; }
+  .presets button{ padding:7px; background:#f1f5f9; color:#334155; border:0; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; }
+  .presets button:hover{ background:#e2e8f0; }
+</style>
+</head>
+<body>
+  <div id="stage"><canvas id="gl"></canvas></div>
+  <div id="panel">
+    <h1>Chained Pipeline</h1>
+    <p class="desc">Fire → texture → Water refracts it → texture → Glass refracts that → screen.</p>
+
+    <div class="st"><input type="checkbox" id="fireOn" checked> 1 · FIRE</div>
+    <div class="presets" id="firePresets"></div>
+    <div class="cg"><label>speed</label><input type="range" id="fireSpeed" min="0" max="0.6" step="0.01" value="0.15"><span class="v" id="fireSpeed-v"></span></div>
+    <div class="cg"><label>scale</label><input type="range" id="fireScale" min="1" max="6" step="0.1" value="3"><span class="v" id="fireScale-v"></span></div>
+    <div class="cg"><label>distortion</label><input type="range" id="fireDist" min="0" max="1" step="0.01" value="0.6"><span class="v" id="fireDist-v"></span></div>
+    <div class="cg"><label>glow</label><input type="range" id="fireGlow" min="0" max="1" step="0.01" value="0.6"><span class="v" id="fireGlow-v"></span></div>
+    <div class="cg"><label>angle</label><input type="range" id="fireAngle" min="0" max="360" step="1" value="0"><span class="v" id="fireAngle-v"></span></div>
+    <div class="cg"><label>colorBack</label><input type="color" id="cBack" value="#000000"><label style="min-width:auto">c1</label><input type="color" id="c1" value="#fe5b16"><label style="min-width:auto">c2</label><input type="color" id="c2" value="#f7ff61"><label style="min-width:auto">c3</label><input type="color" id="c3" value="#ffffff"></div>
+
+    <div class="st"><input type="checkbox" id="waterOn" checked> 2 · WATER</div>
+    <div class="presets" id="waterPresets"></div>
+    <div class="cg"><label>speed</label><input type="range" id="waterSpeed" min="0" max="3" step="0.05" value="1"><span class="v" id="waterSpeed-v"></span></div>
+    <div class="cg"><label>ripple</label><input type="range" id="waterAmp" min="0" max="3" step="0.05" value="1"><span class="v" id="waterAmp-v"></span></div>
+    <div class="cg"><label>frequency</label><input type="range" id="waterFreq" min="1" max="20" step="0.5" value="8"><span class="v" id="waterFreq-v"></span></div>
+    <div class="cg"><label>waves</label><input type="range" id="waterWaves" min="0" max="2" step="0.05" value="0.3"><span class="v" id="waterWaves-v"></span></div>
+    <div class="cg"><label>caustic</label><input type="range" id="caustic" min="0" max="1" step="0.01" value="0.25"><span class="v" id="caustic-v"></span></div>
+    <div class="cg"><label>highlights</label><input type="range" id="waterHi" min="0" max="1" step="0.01" value="0.2"><span class="v" id="waterHi-v"></span></div>
+
+    <div class="st"><input type="checkbox" id="glassOn" checked> 3 · GLASS (fluted)</div>
+    <div class="presets" id="glassPresets"></div>
+    <div class="cg"><label>waviness</label><input type="range" id="glassWave" min="0" max="1" step="0.01" value="0"><span class="v" id="glassWave-v"></span></div>
+    <div class="cg"><label>ribs</label><input type="range" id="glassCount" min="4" max="80" step="1" value="34"><span class="v" id="glassCount-v"></span></div>
+    <div class="cg"><label>strength</label><input type="range" id="glassStrength" min="0" max="3" step="0.05" value="1"><span class="v" id="glassStrength-v"></span></div>
+    <div class="cg"><label>shift</label><input type="range" id="glassShift" min="-1" max="1" step="0.01" value="0"><span class="v" id="glassShift-v"></span></div>
+    <div class="cg"><label>dispersion</label><input type="range" id="glassDisp" min="0" max="3" step="0.05" value="1"><span class="v" id="glassDisp-v"></span></div>
+    <div class="cg"><label>blur</label><input type="range" id="glassBlur" min="0" max="2" step="0.05" value="0.3"><span class="v" id="glassBlur-v"></span></div>
+    <div class="cg"><label>angle</label><input type="range" id="glassAngle" min="0" max="180" step="1" value="0"><span class="v" id="glassAngle-v"></span></div>
+  </div>
+
+<script>
+const P = {
+  fireOn:true, waterOn:true, glassOn:true,
+  fireSpeed:0.15, fireScale:3, fireDist:0.6, fireGlow:0.6, fireAngle:0,
+  cBack:'#000000', c1:'#fe5b16', c2:'#f7ff61', c3:'#ffffff',
+  waterSpeed:1, waterAmp:1, waterFreq:8, waterWaves:0.3, caustic:0.25, waterHi:0.2,
+  glassWave:0, glassCount:34, glassStrength:1, glassShift:0, glassDisp:1, glassBlur:0.3, glassAngle:0,
+};
+
+// Approximate versions of paper's presets, mapped onto the hand-rolled controls
+const FIRE_PRESETS = {
+  Default:     { cBack:'#f0efea', c1:'#333333', c2:'#e7e6df', c3:'#ffffff', fireDist:0.6, fireGlow:0.4, fireScale:3,   fireSpeed:0.15 },
+  Fluorescent: { cBack:'#000000', c1:'#2fb64c', c2:'#cdff61', c3:'#ffffff', fireDist:0.8, fireGlow:0.5, fireScale:3,   fireSpeed:0.15 },
+  Fire:        { cBack:'#000000', c1:'#fe5b16', c2:'#f7ff61', c3:'#ffffff', fireDist:0.6, fireGlow:0.6, fireScale:3,   fireSpeed:0.15 },
+  Infrared:    { cBack:'#cd28dc', c1:'#ff9900', c2:'#fff67a', c3:'#00ffbb', fireDist:1.0, fireGlow:0.7, fireScale:2.4, fireSpeed:0.10 },
+};
+const WATER_PRESETS = {
+  Default:     { waterSpeed:1,   waterAmp:1,   waterFreq:8,  waterWaves:0.3, caustic:0.1, waterHi:0.07 },
+  Abstract:    { waterSpeed:1,   waterAmp:1.6, waterFreq:14, waterWaves:1,   caustic:0.4, waterHi:0 },
+  'Slow-mo':   { waterSpeed:0.1, waterAmp:1,   waterFreq:6,  waterWaves:0,   caustic:0.2, waterHi:0.4 },
+  Streaming:   { waterSpeed:2,   waterAmp:1.2, waterFreq:6,  waterWaves:0.5, caustic:0,   waterHi:0 },
+};
+const GLASS_PRESETS = {
+  Default:  { glassWave:0,   glassCount:40, glassStrength:1,   glassShift:0, glassDisp:1,   glassBlur:0,   glassAngle:0 },
+  Abstract: { glassWave:0.3, glassCount:20, glassStrength:2,   glassShift:0, glassDisp:1.5, glassBlur:1,   glassAngle:30 },
+  Waves:    { glassWave:1,   glassCount:26, glassStrength:1.2, glassShift:0, glassDisp:1,   glassBlur:0.3, glassAngle:0 },
+  Folds:    { glassWave:0.5, glassCount:16, glassStrength:1.6, glassShift:0, glassDisp:0.8, glassBlur:0.5, glassAngle:0 },
+};
+const INT = new Set(['glassCount','waterFreq','fireAngle','glassAngle']);
+
+const canvas=document.getElementById('gl'), stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+const ratio=Math.min(window.devicePixelRatio,2); renderer.setPixelRatio(ratio);
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const quad=new THREE.PlaneGeometry(2,2);
+let DBW=2,DBH=2;
+const rto={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter};
+const rtA=new THREE.WebGLRenderTarget(2,2,rto), rtB=new THREE.WebGLRenderTarget(2,2,rto);
+const NOISE=`
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+    float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+    return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
+  float fbm(vec2 p){float v=0.,a=0.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.0;a*=0.5;}return v;}`;
+const VERT=`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const scn=m=>{const s=new THREE.Scene();s.add(new THREE.Mesh(quad,m));return s;};
+
+const fire=new THREE.ShaderMaterial({
+  uniforms:{u_time:{value:0},u_res:{value:new THREE.Vector2(2,2)},u_scale:{value:P.fireScale},
+    u_dist:{value:P.fireDist},u_glow:{value:P.fireGlow},u_angle:{value:0},
+    u_c1:{value:new THREE.Color('#fe5b16')},u_c2:{value:new THREE.Color('#f7ff61')},u_c3:{value:new THREE.Color('#ffffff')},u_cBack:{value:new THREE.Color('#000000')}},
+  vertexShader:VERT,
+  fragmentShader:`precision highp float;varying vec2 vUv;uniform float u_time,u_scale,u_dist,u_glow,u_angle;uniform vec2 u_res;uniform vec3 u_c1,u_c2,u_c3,u_cBack;
+    ${NOISE}
+    void main(){
+      vec2 uv=vUv; uv.x*=u_res.x/u_res.y;
+      float a=radians(u_angle); vec2 dir=vec2(sin(a),cos(a));
+      float t=u_time; vec2 p=uv*u_scale;
+      vec2 q=vec2(fbm(p+t*dir),fbm(p+vec2(5.2,1.3)-t*dir));
+      float n=fbm(p+q*(u_dist*3.0)-t*2.0*dir);
+      n=pow(clamp(n,0.0,1.0),mix(2.2,0.7,u_glow));
+      vec3 col=u_cBack;
+      col=mix(col,u_c1,smoothstep(0.15,0.5,n));
+      col=mix(col,u_c2,smoothstep(0.45,0.75,n));
+      col=mix(col,u_c3,smoothstep(0.72,1.0,n));
+      gl_FragColor=vec4(col,1.0);
+    }`});
+const fireScene=scn(fire);
+
+const water=new THREE.ShaderMaterial({
+  uniforms:{u_tex:{value:rtA.texture},u_time:{value:0},u_res:{value:new THREE.Vector2(2,2)},
+    u_amp:{value:P.waterAmp},u_freq:{value:P.waterFreq},u_waves:{value:P.waterWaves},u_caustic:{value:P.caustic},u_hi:{value:P.waterHi},u_on:{value:1}},
+  vertexShader:VERT,
+  fragmentShader:`precision highp float;varying vec2 vUv;uniform sampler2D u_tex;uniform float u_time,u_amp,u_freq,u_waves,u_caustic,u_hi,u_on;uniform vec2 u_res;
+    ${NOISE}
+    void main(){
+      vec2 uv=vUv; if(u_on<0.5){gl_FragColor=texture2D(u_tex,uv);return;}
+      float t=u_time;
+      vec2 d=vec2(sin(uv.y*u_freq+t*1.3)+0.5*sin(uv.x*u_freq*1.7-t),
+                  cos(uv.x*u_freq+t*1.1)+0.5*cos(uv.y*u_freq*1.6+t));
+      d+=u_waves*vec2(sin(uv.x*u_freq*0.5-t*0.7),cos(uv.y*u_freq*0.5+t*0.6));
+      vec2 uvW=uv+u_amp*0.006*d;
+      vec3 col=texture2D(u_tex,uvW).rgb;
+      float c=pow(fbm(uv*6.0+t*0.3),3.0);
+      col+=u_caustic*c;
+      col+=u_hi*pow(c,1.5);
+      gl_FragColor=vec4(col,1.0);
+    }`});
+const waterScene=scn(water);
+
+const glass=new THREE.ShaderMaterial({
+  uniforms:{u_tex:{value:rtB.texture},u_res:{value:new THREE.Vector2(2,2)},
+    u_count:{value:P.glassCount},u_strength:{value:P.glassStrength},u_disp:{value:P.glassDisp},
+    u_angle:{value:0},u_blur:{value:P.glassBlur},u_wave:{value:P.glassWave},u_shift:{value:P.glassShift},u_on:{value:1}},
+  vertexShader:VERT,
+  fragmentShader:`precision highp float;varying vec2 vUv;uniform sampler2D u_tex;uniform float u_count,u_strength,u_disp,u_angle,u_blur,u_wave,u_shift,u_on;uniform vec2 u_res;
+    void main(){
+      vec2 uv=vUv; if(u_on<0.5){gl_FragColor=texture2D(u_tex,uv);return;}
+      float a=radians(u_angle); float cs=cos(a),sn=sin(a);
+      vec2 c=uv-0.5; vec2 ruv=vec2(c.x*cs-c.y*sn,c.x*sn+c.y*cs)+0.5;
+      float x=ruv.x*u_count + u_wave*1.5*sin(ruv.y*6.2831);
+      float rib=fract(x); float lens=rib-0.5;
+      float off=lens*u_strength*0.03 + u_shift*0.05;
+      vec2 ndir=vec2(cs,sn);                 // flute-normal in screen space
+      float dsp=u_disp*0.004;
+      vec3 col=vec3(0.0); float w=0.0;
+      for(int i=-2;i<=2;i++){
+        float b=float(i)*u_blur*0.004;
+        vec2 base=uv+ndir*(off+b);
+        col.r+=texture2D(u_tex,base+ndir*dsp).r;
+        col.g+=texture2D(u_tex,base).g;
+        col.b+=texture2D(u_tex,base-ndir*dsp).b;
+        w+=1.0;
+      }
+      col/=w;
+      col*=1.0-0.28*smoothstep(0.3,0.5,abs(lens));
+      col+=0.12*smoothstep(0.05,0.0,abs(lens))*u_strength;
+      gl_FragColor=vec4(col,1.0);
+    }`});
+const glassScene=scn(glass);
+
+function updateSize(){
+  const w=stage.clientWidth,h=stage.clientHeight; renderer.setSize(w,h);
+  const db=renderer.getDrawingBufferSize(new THREE.Vector2()); DBW=db.x; DBH=db.y;
+  rtA.setSize(DBW,DBH); rtB.setSize(DBW,DBH);
+  fire.uniforms.u_res.value.set(DBW,DBH); water.uniforms.u_res.value.set(DBW,DBH); glass.uniforms.u_res.value.set(DBW,DBH);
+}
+updateSize(); window.addEventListener('resize',updateSize);
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t=performance.now()/1000;
+  fire.uniforms.u_time.value=t*P.fireSpeed*6.0; fire.uniforms.u_scale.value=P.fireScale;
+  fire.uniforms.u_dist.value=P.fireDist; fire.uniforms.u_glow.value=P.fireGlow; fire.uniforms.u_angle.value=P.fireAngle;
+  water.uniforms.u_time.value=t*P.waterSpeed; water.uniforms.u_amp.value=P.waterAmp; water.uniforms.u_freq.value=P.waterFreq;
+  water.uniforms.u_waves.value=P.waterWaves; water.uniforms.u_caustic.value=P.caustic; water.uniforms.u_hi.value=P.waterHi; water.uniforms.u_on.value=P.waterOn?1:0;
+  glass.uniforms.u_count.value=P.glassCount; glass.uniforms.u_strength.value=P.glassStrength; glass.uniforms.u_disp.value=P.glassDisp;
+  glass.uniforms.u_angle.value=P.glassAngle; glass.uniforms.u_blur.value=P.glassBlur; glass.uniforms.u_wave.value=P.glassWave; glass.uniforms.u_shift.value=P.glassShift; glass.uniforms.u_on.value=P.glassOn?1:0;
+
+  renderer.setRenderTarget(rtA); renderer.render(fireScene,cam);
+  water.uniforms.u_tex.value=rtA.texture;
+  renderer.setRenderTarget(rtB); renderer.render(waterScene,cam);
+  glass.uniforms.u_tex.value=rtB.texture;
+  renderer.setRenderTarget(null); renderer.render(glassScene,cam);
+}
+animate();
+
+// ---- controls ----
+Object.keys(P).forEach(id=>{
+  const el=document.getElementById(id); if(!el) return;
+  if(el.type==='checkbox'){ el.addEventListener('change',e=>P[id]=e.target.checked); return; }
+  const set=()=>{ const s=document.getElementById(id+'-v'); if(s) s.textContent=INT.has(id)?P[id].toFixed(0):P[id].toFixed(2); };
+  set();
+  el.addEventListener('input',e=>{ P[id]=parseFloat(e.target.value); set(); });
+});
+const CUNI={c1:'u_c1',c2:'u_c2',c3:'u_c3',cBack:'u_cBack'};
+Object.entries(CUNI).forEach(([id,uni])=>{
+  document.getElementById(id).addEventListener('input',e=>{ P[id]=e.target.value; fire.uniforms[uni].value.set(e.target.value); });
+});
+
+// ---- presets ----
+function applyPreset(preset){
+  Object.entries(preset).forEach(([k,v])=>{
+    P[k]=v;
+    const el=document.getElementById(k);
+    if(el) el.value=v;
+    const s=document.getElementById(k+'-v'); if(s) s.textContent=INT.has(k)?(+v).toFixed(0):(+v).toFixed(2);
+    if(CUNI[k]) fire.uniforms[CUNI[k]].value.set(v);
+  });
+}
+function buildPresets(containerId, presets){
+  const c=document.getElementById(containerId);
+  Object.entries(presets).forEach(([name,obj])=>{
+    const b=document.createElement('button'); b.textContent=name; b.onclick=()=>applyPreset(obj); c.appendChild(b);
+  });
+}
+buildPresets('firePresets', FIRE_PRESETS);
+buildPresets('waterPresets', WATER_PRESETS);
+buildPresets('glassPresets', GLASS_PRESETS);
+</script>
+</body>
+</html>

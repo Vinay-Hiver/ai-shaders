@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/components/chainlab.tsx","./src/components/flutedglasslab.tsx","./src/components/glassfirelab.tsx","./src/components/glasslab.tsx","./src/components/meshlab.tsx","./src/components/onboardingscreen.tsx","./src/components/shaderbackground.tsx","./src/components/waveslab.tsx"],"version":"5.9.3"}

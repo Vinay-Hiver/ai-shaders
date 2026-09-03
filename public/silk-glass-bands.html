@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Silk + Glass Bands</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#15161a; height:100vh; display:flex; font-family:'Hanken Grotesk',sans-serif; overflow:hidden; }
+  #stage { flex:1; min-width:0; position:relative; background:#fff; }
+  canvas { display:block; width:100%; height:100%; }
+  #controls { width:300px; background:#fff; padding:20px; overflow-y:auto; box-shadow:-2px 0 8px rgba(0,0,0,.1); }
+  h1 { font-size:20px; font-weight:600; color:#0f172a; margin-bottom:4px; }
+  .desc { font-size:13px; color:#64758b; margin-bottom:16px; line-height:1.5; }
+  .cg { margin-bottom:13px; }
+  label { display:flex; justify-content:space-between; font-size:13px; font-weight:500; color:#334155; margin-bottom:5px; }
+  .v { color:#64758b; font-variant-numeric:tabular-nums; }
+  input[type=range]{ width:100%; height:4px; border-radius:2px; background:#e2e8f0; outline:none; -webkit-appearance:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#0f172a; cursor:pointer; }
+  .st{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#94a3b8; margin:16px 0 10px; }
+  button{ width:100%; padding:9px; background:#0f172a; color:#fff; border:0; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; margin-top:6px; }
+  button.sec{ background:#f1f5f9; color:#334155; }
+</style>
+</head>
+<body>
+  <div id="stage"><canvas id="gl"></canvas></div>
+  <div id="controls">
+    <h1>Glass Bands</h1>
+    <p class="desc">3 glass slabs side-by-side (0px gap), rotated over the silk wave. All controls live.</p>
+    <div class="st">Layout</div>
+    <div class="cg"><label>Angle° <span class="v" id="angle-v"></span></label><input type="range" id="angle" min="-180" max="180" step="1"></div>
+    <div class="cg"><label>Bands <span class="v" id="bands-v"></span></label><input type="range" id="bands" min="1" max="8" step="1"></div>
+    <div class="cg"><label>Curve amount <span class="v" id="curveAmp-v"></span></label><input type="range" id="curveAmp" min="0" max="220" step="1"></div>
+    <div class="cg"><label>Curve waves <span class="v" id="curveFreq-v"></span></label><input type="range" id="curveFreq" min="0" max="4" step="0.05"></div>
+    <div class="cg"><label>Organic <span class="v" id="organic-v"></span></label><input type="range" id="organic" min="0" max="1" step="0.01"></div>
+    <div class="st">Glass optics</div>
+    <div class="cg"><label>Bezel <span class="v" id="bezel-v"></span></label><input type="range" id="bezel" min="4" max="200" step="1"></div>
+    <div class="cg"><label>Thickness <span class="v" id="thickness-v"></span></label><input type="range" id="thickness" min="4" max="200" step="1"></div>
+    <div class="cg"><label>IOR <span class="v" id="ior-v"></span></label><input type="range" id="ior" min="1" max="3" step="0.01"></div>
+    <div class="cg"><label>Blur <span class="v" id="blur-v"></span></label><input type="range" id="blur" min="0" max="6" step="0.1"></div>
+    <div class="cg"><label>Specular <span class="v" id="specular-v"></span></label><input type="range" id="specular" min="0" max="1.5" step="0.01"></div>
+    <div class="cg"><label>Tint <span class="v" id="tint-v"></span></label><input type="range" id="tint" min="0" max="0.4" step="0.01"></div>
+    <div class="st">Silk background</div>
+    <div class="cg"><label>Speed <span class="v" id="s_speed-v"></span></label><input type="range" id="s_speed" min="0" max="0.6" step="0.01"></div>
+    <div class="cg"><label>Movement value (↗) <span class="v" id="s_move-v"></span></label><input type="range" id="s_move" min="0" max="0.3" step="0.005"></div>
+    <div class="cg"><label>Fold frequency <span class="v" id="s_foldFreq-v"></span></label><input type="range" id="s_foldFreq" min="0.2" max="3" step="0.05"></div>
+    <div class="cg"><label>Warp strength <span class="v" id="s_warpStrength-v"></span></label><input type="range" id="s_warpStrength" min="0" max="5" step="0.05"></div>
+    <div class="cg"><label>Warp scale <span class="v" id="s_warpScale-v"></span></label><input type="range" id="s_warpScale" min="0.3" max="3" step="0.05"></div>
+    <div class="cg"><label>Rotation° <span class="v" id="s_rotation-v"></span></label><input type="range" id="s_rotation" min="0" max="180" step="1"></div>
+    <div class="cg"><label>Blue amount <span class="v" id="s_blueAmount-v"></span></label><input type="range" id="s_blueAmount" min="0" max="1" step="0.01"></div>
+    <div class="cg"><label>Sheen <span class="v" id="s_sheen-v"></span></label><input type="range" id="s_sheen" min="0" max="1.5" step="0.01"></div>
+    <div class="cg"><label>Sheen position <span class="v" id="s_sheenPos-v"></span></label><input type="range" id="s_sheenPos" min="0.2" max="0.95" step="0.01"></div>
+    <div class="cg"><label>Sheen sharpness <span class="v" id="s_sheenWidth-v"></span></label><input type="range" id="s_sheenWidth" min="0.01" max="0.25" step="0.005"></div>
+    <div class="cg"><label>Iridescence <span class="v" id="s_iridescence-v"></span></label><input type="range" id="s_iridescence" min="0" max="1" step="0.01"></div>
+    <div class="cg" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><label>Sky</label><input type="color" id="s_sky" style="width:100%;height:32px;border:1px solid #e2e8f0;border-radius:6px"></div>
+      <div><label>Deep</label><input type="color" id="s_deep" style="width:100%;height:32px;border:1px solid #e2e8f0;border-radius:6px"></div>
+      <div><label>Navy</label><input type="color" id="s_navy" style="width:100%;height:32px;border:1px solid #e2e8f0;border-radius:6px"></div>
+    </div>
+
+    <div class="st">Actions</div>
+    <button class="sec" onclick="resetP()">Reset</button>
+    <button onclick="dump()">Log values to console</button>
+  </div>
+
+<script>
+const P = { angle:45, bands:3, bezel:70, thickness:60, ior:1.5, blur:2.0, specular:0.6, tint:0.06, curveAmp:50, curveFreq:1.0, organic:0.6 };
+const DEFAULTS = {...P};
+const SILK = { speed:0.12, foldFreq:3.00, warpStrength:1.60, warpScale:0.78, rotationDeg:40,
+               blueAmount:0.58, sheen:0.0, sheenPos:0.78, sheenWidth:0.055, iridescence:0.0,
+               move:0.04,
+               sky:'#6ba6e0', deep:'#15589a', navy:'#173f60' };
+
+const canvas = document.getElementById('gl'), stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+const ratio = Math.min(window.devicePixelRatio, 2);
+renderer.setPixelRatio(ratio);
+const cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const quad = new THREE.PlaneGeometry(2,2);
+let DBW=2, DBH=2;
+const rt = new THREE.WebGLRenderTarget(2,2,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter});
+
+// ---- PASS 1: silk ----
+const silkScene = new THREE.Scene();
+const silk = new THREE.ShaderMaterial({
+  uniforms:{ u_time:{value:0}, u_resolution:{value:new THREE.Vector2(2,2)},
+    u_speed:{value:SILK.speed}, u_foldFreq:{value:SILK.foldFreq}, u_warpStrength:{value:SILK.warpStrength},
+    u_warpScale:{value:SILK.warpScale}, u_rotation:{value:SILK.rotationDeg*Math.PI/180},
+    u_blueAmount:{value:SILK.blueAmount}, u_sheen:{value:SILK.sheen}, u_sheenPos:{value:SILK.sheenPos},
+    u_sheenWidth:{value:SILK.sheenWidth}, u_iridescence:{value:SILK.iridescence}, u_move:{value:SILK.move},
+    u_bg:{value:new THREE.Color('#fff')}, u_sky:{value:new THREE.Color(SILK.sky)},
+    u_deep:{value:new THREE.Color(SILK.deep)}, u_navy:{value:new THREE.Color(SILK.navy)} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float;
+    uniform float u_time,u_speed,u_foldFreq,u_warpStrength,u_warpScale,u_rotation,u_blueAmount;
+    uniform float u_sheen,u_sheenPos,u_sheenWidth,u_iridescence,u_move;
+    uniform vec2 u_resolution; uniform vec3 u_bg,u_sky,u_deep,u_navy; varying vec2 vUv;
+    float random(vec2 st){ return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123); }
+    float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+      float a=random(i),b=random(i+vec2(1.,0.)),c=random(i+vec2(0.,1.)),d=random(i+vec2(1.,1.));
+      return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
+    float fbm(vec2 p){ float v=0.,amp=0.5; for(int i=0;i<5;i++){ v+=amp*noise(p); p*=2.0; amp*=0.5; } return v; }
+    float creaseLine(float fold,float pos,float w){ float d=abs(fold-pos); float l=1.0-smoothstep(0.0,w,d); return l*l; }
+    void main(){
+      vec2 uv=vUv; float aspect=u_resolution.x/u_resolution.y; uv.x*=aspect;
+      uv -= u_move * u_time * vec2(0.70710678);   // continuous drift toward top-right
+      float t=u_time*u_speed; float cs=cos(u_rotation),sn=sin(u_rotation);
+      vec2 ruv=vec2(uv.x*cs-uv.y*sn,uv.x*sn+uv.y*cs);
+      vec2 q=vec2(fbm(uv*u_warpScale+t),fbm(uv*u_warpScale+vec2(5.2,1.3)-t*0.8));
+      float w=fbm(uv*u_warpScale+q*1.6+t*0.5);
+      float v=ruv.x*u_foldFreq+w*u_warpStrength;
+      float fold=sin(v*3.14159265)*0.5+0.5; fold=clamp(fold+(u_blueAmount-0.5)*0.7,0.0,1.0);
+      vec3 col=u_bg;
+      col=mix(col,u_sky,smoothstep(0.45,0.80,fold));
+      col=mix(col,u_deep,smoothstep(0.72,0.94,fold));
+      col=mix(col,u_navy,smoothstep(0.89,1.0,fold));
+      float off=u_iridescence*0.05;
+      vec3 sheen=vec3(creaseLine(fold,u_sheenPos-off,u_sheenWidth),creaseLine(fold,u_sheenPos,u_sheenWidth),creaseLine(fold,u_sheenPos+off,u_sheenWidth))*u_sheen;
+      col=1.0-(1.0-col)*(1.0-sheen);
+      gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+    }`
+});
+silkScene.add(new THREE.Mesh(quad, silk));
+
+// ---- PASS 2: rotated glass bands ----
+const glassScene = new THREE.Scene();
+const glass = new THREE.ShaderMaterial({
+  uniforms:{ uResolution:{value:new THREE.Vector2(2,2)}, uCenter:{value:new THREE.Vector2(1,1)},
+    uAngle:{value:0}, uBandWidth:{value:100}, uBandCount:{value:3},
+    uBezel:{value:70}, uThickness:{value:60}, uIOR:{value:1.5}, uBlur:{value:2.0},
+    uSpecular:{value:0.6}, uTint:{value:0.06}, uCurveAmp:{value:0}, uCurveFreq:{value:1}, uOrganic:{value:0}, uBgTex:{value:rt.texture} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float; varying vec2 vUv;
+    uniform vec2 uResolution, uCenter; uniform float uAngle, uBandWidth, uBandCount;
+    uniform float uBezel, uThickness, uIOR, uBlur, uSpecular, uTint, uCurveAmp, uCurveFreq, uOrganic; uniform sampler2D uBgTex;
+    float surfaceHeight(float t){ float s=1.0-t; return pow(1.0 - s*s*s*s, 0.25); }
+    float hash1(float n){ return fract(sin(n)*43758.5453123); }
+    float vnoise1(float x){ float i=floor(x); float f=fract(x); f=f*f*(3.0-2.0*f); return mix(hash1(i),hash1(i+1.0),f); }
+    float fbm1(float x){ float v=0.0,a=0.5; for(int i=0;i<4;i++){ v+=a*vnoise1(x); x*=2.0; a*=0.5; } return v; }
+    // seam offset along the band: blends a clean sine with organic fbm noise
+    float seamShift(float qy){
+      float k = uCurveFreq * 6.2831853 / uResolution.y;
+      float s = sin(qy * k);
+      float n = fbm1(qy * k) * 2.0 - 1.0;
+      return uCurveAmp * mix(s, n, uOrganic);
+    }
+    vec3 sampleBg(vec2 s){ return texture2D(uBgTex, vec2(s.x, 1.0-s.y)).rgb; }
+    vec3 sampleBgBlurred(vec2 uv,float radius){
+      if(radius<0.5) return sampleBg(uv);
+      vec3 sum=vec3(0.0); vec2 px=1.0/uResolution; vec2 o[16];
+      o[0]=vec2(-0.94,-0.40);o[1]=vec2(0.95,-0.77);o[2]=vec2(-0.09,-0.93);o[3]=vec2(0.34,0.29);
+      o[4]=vec2(-0.92,-0.46);o[5]=vec2(-0.82,0.49);o[6]=vec2(-0.38,-0.56);o[7]=vec2(-0.13,0.85);
+      o[8]=vec2(0.90,0.41);o[9]=vec2(0.18,-0.30);o[10]=vec2(-0.01,-0.16);o[11]=vec2(0.60,0.71);
+      o[12]=vec2(0.50,-0.47);o[13]=vec2(0.81,0.05);o[14]=vec2(-0.32,-0.04);o[15]=vec2(-0.61,0.07);
+      for(int i=0;i<16;i++) sum+=sampleBg(uv+o[i]*radius*px);
+      return sum/16.0;
+    }
+    void main(){
+      vec2 screenPx = vec2(vUv.x, 1.0-vUv.y) * uResolution;
+      vec2 screenUV = screenPx / uResolution;
+      vec3 bg0 = sampleBg(screenUV);
+
+      float ca=cos(uAngle), sa=sin(uAngle);
+      vec2 c = screenPx - uCenter;
+      float qx = c.x*ca + c.y*sa;                 // across-band axis (rotate by -angle)
+      float qy = -c.x*sa + c.y*ca;                    // along-band axis
+      float shift  = seamShift(qy);                   // wavy seam offset (sine <-> organic)
+      float dshift = seamShift(qy + 1.0) - shift;     // seam tangent slope (finite diff)
+      float qxw = qx - shift;
+      float total = uBandWidth * uBandCount;
+      float local = qxw + total*0.5;
+      if(local < 0.0 || local > total){ gl_FragColor=vec4(bg0,1.0); return; }
+
+      float within = fract(local/uBandWidth) * uBandWidth;
+      float distFromEdge = min(within, uBandWidth - within);
+      float bezel = min(uBezel, uBandWidth*0.5 - 1.0);
+      float t = clamp(distFromEdge/bezel, 0.0, 1.0);
+      float h = surfaceHeight(t);
+      float dt=0.001; float dh=(surfaceHeight(min(t+dt,1.0))-h)/dt;
+      float slope=atan(dh*(uThickness/bezel));
+      float sinR=clamp(sin(slope)/uIOR,-1.0,1.0);
+      float displacement = h*uThickness*(tan(slope)-tan(asin(sinR)));
+
+      float dir = (within < uBandWidth*0.5) ? -1.0 : 1.0;   // toward nearest seam (band space)
+      vec2 nBand = normalize(vec2(1.0, -dshift)) * dir;      // edge normal follows the curve
+      vec2 gradScreen = vec2(nBand.x*ca - nBand.y*sa, nBand.x*sa + nBand.y*ca); // band->screen
+      vec2 offset = -gradScreen * displacement / uResolution;
+      vec3 color = sampleBgBlurred(screenUV + offset, uBlur);
+
+      vec2 lightDir = normalize(vec2(0.5,-0.7));
+      float rimDot = abs(dot(gradScreen, lightDir));
+      float rimFalloff = 1.0 - smoothstep(0.0, bezel*0.5, distFromEdge);
+      color += vec3(pow(rimDot*rimFalloff,1.5)*uSpecular);
+      float innerRim = smoothstep(0.0,2.0,distFromEdge)*(1.0-smoothstep(2.0,5.0,distFromEdge));
+      color += vec3(innerRim*0.15*uSpecular);
+      color = mix(color, vec3(1.0), uTint);
+
+      float alpha = smoothstep(0.0, 1.5, distFromEdge);
+      gl_FragColor = vec4(mix(bg0, color, alpha), 1.0);
+    }`
+});
+glassScene.add(new THREE.Mesh(quad, glass));
+
+function bandSpan(angleRad){ // projected width across the band axis so bands cover the panel
+  return Math.abs(DBW*Math.cos(angleRad)) + Math.abs(DBH*Math.sin(angleRad));
+}
+function updateSize(){
+  const w=stage.clientWidth, h=stage.clientHeight;
+  renderer.setSize(w,h);
+  const db=renderer.getDrawingBufferSize(new THREE.Vector2()); DBW=db.x; DBH=db.y;
+  rt.setSize(DBW,DBH);
+  silk.uniforms.u_resolution.value.set(DBW,DBH);
+  glass.uniforms.uResolution.value.set(DBW,DBH);
+  glass.uniforms.uCenter.value.set(DBW/2, DBH/2);
+}
+function syncGlass(){
+  const a = P.angle*Math.PI/180;
+  glass.uniforms.uAngle.value = a;
+  glass.uniforms.uBandCount.value = P.bands;
+  glass.uniforms.uBandWidth.value = bandSpan(a)/P.bands;   // fill container, 0 gap
+  glass.uniforms.uBezel.value = P.bezel*ratio;
+  glass.uniforms.uThickness.value = P.thickness*ratio;
+  glass.uniforms.uIOR.value = P.ior;
+  glass.uniforms.uBlur.value = P.blur;
+  glass.uniforms.uSpecular.value = P.specular;
+  glass.uniforms.uTint.value = P.tint;
+  glass.uniforms.uCurveAmp.value = P.curveAmp*ratio;
+  glass.uniforms.uCurveFreq.value = P.curveFreq;
+  glass.uniforms.uOrganic.value = P.organic;
+}
+updateSize(); window.addEventListener('resize', ()=>{ updateSize(); });
+
+function animate(){
+  requestAnimationFrame(animate);
+  silk.uniforms.u_time.value = performance.now()/1000;
+  syncGlass();
+  renderer.setRenderTarget(rt); renderer.render(silkScene, cam);
+  renderer.setRenderTarget(null); renderer.render(glassScene, cam);
+}
+animate();
+
+// ---- controls ----
+const KEYS = ['angle','bands','curveAmp','curveFreq','organic','bezel','thickness','ior','blur','specular','tint'];
+function fmt(k,v){ return (k==='angle'||k==='bands'||k==='bezel'||k==='thickness'||k==='curveAmp')? v.toFixed(0) : v.toFixed(2); }
+function bind(k){ const el=document.getElementById(k); el.value=P[k]; document.getElementById(k+'-v').textContent=fmt(k,P[k]);
+  el.addEventListener('input',e=>{ P[k]=parseFloat(e.target.value); document.getElementById(k+'-v').textContent=fmt(k,P[k]); }); }
+KEYS.forEach(bind);
+
+// ----- silk (background) controls -----
+const S = { speed:SILK.speed, move:SILK.move, foldFreq:SILK.foldFreq, warpStrength:SILK.warpStrength, warpScale:SILK.warpScale,
+            rotation:SILK.rotationDeg, blueAmount:SILK.blueAmount, sheen:SILK.sheen, sheenPos:SILK.sheenPos,
+            sheenWidth:SILK.sheenWidth, iridescence:SILK.iridescence };
+const S_DEF = {...S};
+const S_UNI = { speed:'u_speed', foldFreq:'u_foldFreq', warpStrength:'u_warpStrength', warpScale:'u_warpScale',
+                rotation:'u_rotation', blueAmount:'u_blueAmount', sheen:'u_sheen', sheenPos:'u_sheenPos',
+                sheenWidth:'u_sheenWidth', iridescence:'u_iridescence', move:'u_move' };
+const SCOL = { sky:SILK.sky, deep:SILK.deep, navy:SILK.navy };
+const SCOL_DEF = {...SCOL};
+function fmtS(k,v){ return (k==='rotation')? v.toFixed(0) : v.toFixed(2); }
+function applyS(k){ silk.uniforms[S_UNI[k]].value = (k==='rotation')? S[k]*Math.PI/180 : S[k]; }
+function bindS(k){ const el=document.getElementById('s_'+k); el.value=S[k]; document.getElementById('s_'+k+'-v').textContent=fmtS(k,S[k]);
+  el.addEventListener('input',e=>{ S[k]=parseFloat(e.target.value); applyS(k); document.getElementById('s_'+k+'-v').textContent=fmtS(k,S[k]); }); }
+Object.keys(S).forEach(bindS);
+Object.keys(SCOL).forEach(k=>{ const el=document.getElementById('s_'+k); el.value=SCOL[k];
+  el.addEventListener('input',e=>{ SCOL[k]=e.target.value; silk.uniforms['u_'+k].value.setStyle(e.target.value); }); });
+
+function resetP(){
+  Object.assign(P,DEFAULTS); KEYS.forEach(k=>{ const el=document.getElementById(k); el.value=P[k]; document.getElementById(k+'-v').textContent=fmt(k,P[k]); });
+  Object.assign(S,S_DEF); Object.keys(S).forEach(k=>{ const el=document.getElementById('s_'+k); el.value=S[k]; document.getElementById('s_'+k+'-v').textContent=fmtS(k,S[k]); applyS(k); });
+  Object.keys(SCOL).forEach(k=>{ SCOL[k]=SCOL_DEF[k]; document.getElementById('s_'+k).value=SCOL[k]; silk.uniforms['u_'+k].value.setStyle(SCOL[k]); });
+}
+function dump(){ const out={ glass:P, silk:{...S,...SCOL} }; console.log('PARAMS', JSON.stringify(out,null,2)); return out; }
+</script>
+</body>
+</html>

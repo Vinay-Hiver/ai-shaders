@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "shader-creator": {
+      "source": "smithery.ai",
+      "sourceUrl": "https://smithery.ai/skills/polats/shader-creator",
+      "sourceType": "well-known",
+      "computedHash": "76801bd5ceae0b7dafee7372d9eb587181e899925e0b11c10426270d7e83d428",
+      "wellKnownDigest": "sha256:7ea1b53c4b20dc17e7632359a4f71f9ab424b87630f2f2e4f02139a42beb8f13"
+    }
+  }
+}

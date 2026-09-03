@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liquid Glass — Shader Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Hanken Grotesk',-apple-system,sans-serif; background:#0b0b0f; overflow:hidden; }
+  #container { display:flex; height:100vh; }
+  #canvas-container { flex:1; position:relative; background:#fff; }
+  canvas { display:block; width:100%; height:100%; }
+  #controls { width:310px; background:#fff; padding:22px; overflow-y:auto; box-shadow:-2px 0 8px rgba(0,0,0,.1); }
+  h1 { font-size:21px; font-weight:600; margin-bottom:6px; color:#0f172a; }
+  .description { font-size:13px; color:#64758b; margin-bottom:16px; line-height:1.5; }
+  .control-group { margin-bottom:13px; }
+  label { display:flex; justify-content:space-between; font-size:13px; font-weight:500; color:#334155; margin-bottom:5px; }
+  .value-display { font-size:12px; color:#64758b; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; height:4px; border-radius:2px; background:#e2e8f0; outline:none; -webkit-appearance:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#0f172a; cursor:pointer; }
+  input[type=color] { width:100%; height:32px; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; background:#fff; }
+  .row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .section-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:#94a3b8; margin:18px 0 10px; }
+  button { width:100%; padding:9px; background:#0f172a; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; margin-top:6px; }
+  button:hover { background:#334155; }
+  button.secondary { background:#f1f5f9; color:#334155; }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="canvas-container"></div>
+  <div id="controls">
+    <h1>Liquid Glass</h1>
+    <p class="description">Animated silk shader rendered to a texture, then refracted through a glass lens with chromatic dispersion. Two-pass, fully live.</p>
+
+    <div class="section-title">Glass</div>
+    <div class="control-group"><label>Bulge <span class="value-display" id="bulge-v">0.20</span></label><input type="range" id="bulge" min="-0.6" max="0.8" step="0.01" value="0.20"></div>
+    <div class="control-group"><label>Dispersion <span class="value-display" id="dispersion-v">0.028</span></label><input type="range" id="dispersion" min="0" max="0.25" step="0.005" value="0.028"></div>
+    <div class="control-group"><label>Zoom <span class="value-display" id="zoom-v">1.05</span></label><input type="range" id="zoom" min="1" max="1.4" step="0.01" value="1.05"></div>
+    <div class="control-group"><label>Edge highlight <span class="value-display" id="edgeHi-v">0.35</span></label><input type="range" id="edgeHi" min="0" max="1.5" step="0.01" value="0.35"></div>
+    <div class="control-group"><label>Ripple <span class="value-display" id="ripple-v">0.3</span></label><input type="range" id="ripple" min="0" max="1.5" step="0.01" value="0.3"></div>
+
+    <div class="section-title">Silk</div>
+    <div class="control-group"><label>Speed <span class="value-display" id="speed-v">0.12</span></label><input type="range" id="speed" min="0" max="0.6" step="0.01" value="0.12"></div>
+    <div class="control-group"><label>Fold frequency <span class="value-display" id="foldFreq-v">2.30</span></label><input type="range" id="foldFreq" min="0.2" max="3" step="0.05" value="2.30"></div>
+    <div class="control-group"><label>Warp strength <span class="value-display" id="warpStrength-v">1.60</span></label><input type="range" id="warpStrength" min="0" max="5" step="0.05" value="1.60"></div>
+    <div class="control-group"><label>Blue amount <span class="value-display" id="blueAmount-v">0.46</span></label><input type="range" id="blueAmount" min="0" max="1" step="0.01" value="0.46"></div>
+    <div class="control-group"><label>Sheen <span class="value-display" id="sheen-v">0.82</span></label><input type="range" id="sheen" min="0" max="1.5" step="0.01" value="0.82"></div>
+    <div class="control-group"><label>Iridescence <span class="value-display" id="iridescence-v">0.00</span></label><input type="range" id="iridescence" min="0" max="1" step="0.01" value="0.00"></div>
+
+    <div class="section-title">Colors</div>
+    <div class="row">
+      <div class="control-group"><label>Sky</label><input type="color" id="sky" value="#6ba6e0"></div>
+      <div class="control-group"><label>Deep</label><input type="color" id="deep" value="#15589a"></div>
+      <div class="control-group"><label>Navy</label><input type="color" id="navy" value="#173f60"></div>
+    </div>
+
+    <div class="section-title">Actions</div>
+    <button class="secondary" onclick="resetParams()">Reset to defaults</button>
+    <button onclick="downloadImage()">Download PNG</button>
+    <button class="secondary" onclick="dumpValues()">Log values to console</button>
+  </div>
+</div>
+
+<script>
+const DEFAULTS = {
+  bulge:0.20, dispersion:0.028, zoom:1.05, edgeHi:0.35, ripple:0.3,
+  speed:0.12, foldFreq:2.30, warpStrength:1.60, blueAmount:0.46, sheen:0.82, iridescence:0.0,
+  sky:'#6ba6e0', deep:'#15589a', navy:'#173f60',
+};
+// fixed silk params not exposed as sliders
+const FIXED = { warpScale:0.78, rotation:40*Math.PI/180, sheenPos:0.78, sheenWidth:0.055 };
+
+const container = document.getElementById('canvas-container');
+const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+
+let W = container.clientWidth, H = container.clientHeight;
+const rt = new THREE.WebGLRenderTarget(W, H, { minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter });
+
+const quad = new THREE.PlaneGeometry(2,2);
+const cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+
+// ---------- PASS 1: silk ----------
+const silkScene = new THREE.Scene();
+const silk = new THREE.ShaderMaterial({
+  uniforms: {
+    u_time:{value:0}, u_resolution:{value:new THREE.Vector2(W,H)},
+    u_speed:{value:DEFAULTS.speed}, u_foldFreq:{value:DEFAULTS.foldFreq},
+    u_warpStrength:{value:DEFAULTS.warpStrength}, u_warpScale:{value:FIXED.warpScale},
+    u_rotation:{value:FIXED.rotation}, u_blueAmount:{value:DEFAULTS.blueAmount},
+    u_sheen:{value:DEFAULTS.sheen}, u_sheenPos:{value:FIXED.sheenPos},
+    u_sheenWidth:{value:FIXED.sheenWidth}, u_iridescence:{value:DEFAULTS.iridescence},
+    u_bg:{value:new THREE.Color('#ffffff')}, u_sky:{value:new THREE.Color(DEFAULTS.sky)},
+    u_deep:{value:new THREE.Color(DEFAULTS.deep)}, u_navy:{value:new THREE.Color(DEFAULTS.navy)},
+  },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float;
+    uniform float u_time,u_speed,u_foldFreq,u_warpStrength,u_warpScale,u_rotation,u_blueAmount;
+    uniform float u_sheen,u_sheenPos,u_sheenWidth,u_iridescence;
+    uniform vec2 u_resolution; uniform vec3 u_bg,u_sky,u_deep,u_navy;
+    varying vec2 vUv;
+    float random(vec2 st){ return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123); }
+    float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+      float a=random(i),b=random(i+vec2(1.,0.)),c=random(i+vec2(0.,1.)),d=random(i+vec2(1.,1.));
+      return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
+    float fbm(vec2 p){ float v=0.0,amp=0.5; for(int i=0;i<5;i++){ v+=amp*noise(p); p*=2.0; amp*=0.5; } return v; }
+    float creaseLine(float fold,float pos,float w){ float d=abs(fold-pos); float l=1.0-smoothstep(0.0,w,d); return l*l; }
+    void main(){
+      vec2 uv=vUv; float aspect=u_resolution.x/u_resolution.y; uv.x*=aspect;
+      float t=u_time*u_speed;
+      float cs=cos(u_rotation),sn=sin(u_rotation);
+      vec2 ruv=vec2(uv.x*cs-uv.y*sn,uv.x*sn+uv.y*cs);
+      vec2 q=vec2(fbm(uv*u_warpScale+t),fbm(uv*u_warpScale+vec2(5.2,1.3)-t*0.8));
+      float w=fbm(uv*u_warpScale+q*1.6+t*0.5);
+      float v=ruv.x*u_foldFreq+w*u_warpStrength;
+      float fold=sin(v*3.14159265)*0.5+0.5;
+      fold=clamp(fold+(u_blueAmount-0.5)*0.7,0.0,1.0);
+      vec3 col=u_bg;
+      col=mix(col,u_sky,smoothstep(0.45,0.80,fold));
+      col=mix(col,u_deep,smoothstep(0.72,0.94,fold));
+      col=mix(col,u_navy,smoothstep(0.89,1.0,fold));
+      float off=u_iridescence*0.05;
+      float lR=creaseLine(fold,u_sheenPos-off,u_sheenWidth);
+      float lG=creaseLine(fold,u_sheenPos,u_sheenWidth);
+      float lB=creaseLine(fold,u_sheenPos+off,u_sheenWidth);
+      vec3 sheen=vec3(lR,lG,lB)*u_sheen;
+      col=1.0-(1.0-col)*(1.0-sheen);
+      gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+    }`
+});
+silkScene.add(new THREE.Mesh(quad, silk));
+
+// ---------- PASS 2: glass ----------
+const glassScene = new THREE.Scene();
+const glass = new THREE.ShaderMaterial({
+  uniforms: {
+    u_tex:{value:rt.texture}, u_time:{value:0}, u_resolution:{value:new THREE.Vector2(W,H)},
+    u_bulge:{value:DEFAULTS.bulge}, u_dispersion:{value:DEFAULTS.dispersion},
+    u_zoom:{value:DEFAULTS.zoom}, u_edgeHi:{value:DEFAULTS.edgeHi}, u_ripple:{value:DEFAULTS.ripple},
+  },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float;
+    uniform sampler2D u_tex; uniform vec2 u_resolution;
+    uniform float u_time,u_bulge,u_dispersion,u_zoom,u_edgeHi,u_ripple;
+    varying vec2 vUv;
+    void main(){
+      vec2 uv=vUv;
+      vec2 c=uv-0.5;
+      float r2=dot(c,c);
+      // slow liquid ripple in the lens surface
+      float rip=u_ripple*0.02*sin(uv.y*10.0+u_time*0.6)*cos(uv.x*8.0-u_time*0.4);
+      // barrel/pincushion lens distortion
+      vec2 duv=uv+c*(r2*u_bulge)+vec2(rip);
+      duv=(duv-0.5)/u_zoom+0.5;
+      // chromatic dispersion, stronger toward edges
+      vec2 dir=normalize(c+1e-5);
+      float disp=u_dispersion*(0.25+r2);
+      float rC=texture2D(u_tex,duv+dir*disp).r;
+      float gC=texture2D(u_tex,duv).g;
+      float bC=texture2D(u_tex,duv-dir*disp).b;
+      vec3 col=vec3(rC,gC,bC);
+      // glassy edge highlight (specular rim)
+      float rim=smoothstep(0.15,0.5,r2);
+      col=1.0-(1.0-col)*(1.0-rim*u_edgeHi*0.18);
+      gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+    }`
+});
+glassScene.add(new THREE.Mesh(quad, glass));
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now = performance.now()/1000;
+  silk.uniforms.u_time.value = now;
+  glass.uniforms.u_time.value = now;
+  renderer.setRenderTarget(rt);
+  renderer.render(silkScene, cam);
+  renderer.setRenderTarget(null);
+  renderer.render(glassScene, cam);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  W=container.clientWidth; H=container.clientHeight;
+  renderer.setSize(W,H); rt.setSize(W,H);
+  silk.uniforms.u_resolution.value.set(W,H);
+  glass.uniforms.u_resolution.value.set(W,H);
+});
+
+// ---------- controls ----------
+const GLASS_F=['bulge','dispersion','zoom','edgeHi','ripple'];
+const SILK_F=['speed','foldFreq','warpStrength','blueAmount','sheen','iridescence'];
+GLASS_F.forEach(id=>document.getElementById(id).addEventListener('input',e=>{
+  const v=parseFloat(e.target.value); glass.uniforms['u_'+id].value=v; document.getElementById(id+'-v').textContent=v.toFixed(2);
+}));
+SILK_F.forEach(id=>document.getElementById(id).addEventListener('input',e=>{
+  const v=parseFloat(e.target.value); silk.uniforms['u_'+id].value=v; document.getElementById(id+'-v').textContent=v.toFixed(2);
+}));
+['sky','deep','navy'].forEach(id=>document.getElementById(id).addEventListener('input',e=>{
+  silk.uniforms['u_'+id].value.setStyle(e.target.value);
+}));
+function resetParams(){
+  Object.entries(DEFAULTS).forEach(([k,v])=>{
+    const el=document.getElementById(k); if(!el) return; el.value=v;
+    if(typeof v==='number'){ const u=(GLASS_F.includes(k)?glass:silk); u.uniforms['u_'+k].value=v; const d=document.getElementById(k+'-v'); if(d)d.textContent=v.toFixed(2); }
+    else silk.uniforms['u_'+k].value.setStyle(v);
+  });
+}
+function downloadImage(){ const a=document.createElement('a'); a.download='liquid-glass.png'; a.href=renderer.domElement.toDataURL(); a.click(); }
+function dumpValues(){
+  const out={}; [...GLASS_F,...SILK_F].forEach(id=>out[id]=parseFloat(document.getElementById(id).value));
+  ['sky','deep','navy'].forEach(id=>out[id]=document.getElementById(id).value);
+  console.log('LIQUID GLASS PARAMS', JSON.stringify(out,null,2)); return out;
+}
+</script>
+</body>
+</html>

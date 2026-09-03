@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Silk + Liquid Glass</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#15161a; height:100vh; display:flex; align-items:center; justify-content:center;
+         font-family:'Hanken Grotesk',sans-serif; overflow:hidden; }
+  /* the right-side container (portrait), glass fills it entirely */
+  .stage { position:relative; width:min(46vw,540px); height:100vh; overflow:hidden; background:#fff; }
+  canvas { display:block; width:100%; height:100%; }
+  .hint { position:fixed; top:14px; left:14px; color:#fff; opacity:.55; font-size:12px; }
+</style>
+</head>
+<body>
+  <div class="hint">Silk wave (pass 1 → texture) + WebGL Snell-refraction glass filling the container (pass 2)</div>
+  <div class="stage"><canvas id="gl"></canvas></div>
+
+<script>
+// ---------- glass params (fills the whole container) ----------
+const GLASS = { radius:90, bezel:85, thickness:70, ior:1.5, blur:2.0, specular:0.6, tint:0.05, shadow:0.35 };
+// ---------- silk params (tuned earlier) ----------
+const SILK = { speed:0.12, foldFreq:2.30, warpStrength:1.60, warpScale:0.78, rotationDeg:40,
+               blueAmount:0.46, sheen:0.82, sheenPos:0.78, sheenWidth:0.055, iridescence:0.15,
+               sky:'#6ba6e0', deep:'#15589a', navy:'#173f60' };
+
+const canvas = document.getElementById('gl');
+const stage = canvas.parentElement;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+const ratio = Math.min(window.devicePixelRatio, 2);
+renderer.setPixelRatio(ratio);
+
+const cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const quad = new THREE.PlaneGeometry(2,2);
+
+let DBW = 0, DBH = 0; // drawing-buffer size (px)
+const rt = new THREE.WebGLRenderTarget(2, 2, { minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter });
+
+// ---------- PASS 1: silk ----------
+const silkScene = new THREE.Scene();
+const silk = new THREE.ShaderMaterial({
+  uniforms: {
+    u_time:{value:0}, u_resolution:{value:new THREE.Vector2(2,2)},
+    u_speed:{value:SILK.speed}, u_foldFreq:{value:SILK.foldFreq}, u_warpStrength:{value:SILK.warpStrength},
+    u_warpScale:{value:SILK.warpScale}, u_rotation:{value:SILK.rotationDeg*Math.PI/180},
+    u_blueAmount:{value:SILK.blueAmount}, u_sheen:{value:SILK.sheen}, u_sheenPos:{value:SILK.sheenPos},
+    u_sheenWidth:{value:SILK.sheenWidth}, u_iridescence:{value:SILK.iridescence},
+    u_bg:{value:new THREE.Color('#ffffff')}, u_sky:{value:new THREE.Color(SILK.sky)},
+    u_deep:{value:new THREE.Color(SILK.deep)}, u_navy:{value:new THREE.Color(SILK.navy)},
+  },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float;
+    uniform float u_time,u_speed,u_foldFreq,u_warpStrength,u_warpScale,u_rotation,u_blueAmount;
+    uniform float u_sheen,u_sheenPos,u_sheenWidth,u_iridescence;
+    uniform vec2 u_resolution; uniform vec3 u_bg,u_sky,u_deep,u_navy;
+    varying vec2 vUv;
+    float random(vec2 st){ return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123); }
+    float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+      float a=random(i),b=random(i+vec2(1.,0.)),c=random(i+vec2(0.,1.)),d=random(i+vec2(1.,1.));
+      return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }
+    float fbm(vec2 p){ float v=0.0,amp=0.5; for(int i=0;i<5;i++){ v+=amp*noise(p); p*=2.0; amp*=0.5; } return v; }
+    float creaseLine(float fold,float pos,float w){ float d=abs(fold-pos); float l=1.0-smoothstep(0.0,w,d); return l*l; }
+    void main(){
+      vec2 uv=vUv; float aspect=u_resolution.x/u_resolution.y; uv.x*=aspect;
+      float t=u_time*u_speed;
+      float cs=cos(u_rotation),sn=sin(u_rotation);
+      vec2 ruv=vec2(uv.x*cs-uv.y*sn,uv.x*sn+uv.y*cs);
+      vec2 q=vec2(fbm(uv*u_warpScale+t),fbm(uv*u_warpScale+vec2(5.2,1.3)-t*0.8));
+      float w=fbm(uv*u_warpScale+q*1.6+t*0.5);
+      float v=ruv.x*u_foldFreq+w*u_warpStrength;
+      float fold=sin(v*3.14159265)*0.5+0.5;
+      fold=clamp(fold+(u_blueAmount-0.5)*0.7,0.0,1.0);
+      vec3 col=u_bg;
+      col=mix(col,u_sky,smoothstep(0.45,0.80,fold));
+      col=mix(col,u_deep,smoothstep(0.72,0.94,fold));
+      col=mix(col,u_navy,smoothstep(0.89,1.0,fold));
+      float off=u_iridescence*0.05;
+      float lR=creaseLine(fold,u_sheenPos-off,u_sheenWidth);
+      float lG=creaseLine(fold,u_sheenPos,u_sheenWidth);
+      float lB=creaseLine(fold,u_sheenPos+off,u_sheenWidth);
+      vec3 sheen=vec3(lR,lG,lB)*u_sheen;
+      col=1.0-(1.0-col)*(1.0-sheen);
+      gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+    }`
+});
+silkScene.add(new THREE.Mesh(quad, silk));
+
+// ---------- PASS 2: liquid glass (Snell refraction) ----------
+const glassScene = new THREE.Scene();
+const glass = new THREE.ShaderMaterial({
+  uniforms: {
+    uResolution:{value:new THREE.Vector2(2,2)},
+    uGlassCenter:{value:new THREE.Vector2(1,1)},
+    uGlassSize:{value:new THREE.Vector2(2,2)},
+    uRadius:{value:GLASS.radius}, uBezel:{value:GLASS.bezel}, uThickness:{value:GLASS.thickness},
+    uIOR:{value:GLASS.ior}, uBlur:{value:GLASS.blur}, uSpecular:{value:GLASS.specular},
+    uTint:{value:GLASS.tint}, uShadow:{value:GLASS.shadow}, uBgTex:{value:rt.texture},
+  },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float;
+    varying vec2 vUv;
+    uniform vec2 uResolution, uGlassCenter, uGlassSize;
+    uniform float uRadius, uBezel, uThickness, uIOR, uBlur, uSpecular, uTint, uShadow;
+    uniform sampler2D uBgTex;
+
+    float sdRoundedRect(vec2 p, vec2 halfSize, float r){
+      vec2 q = abs(p) - halfSize + r;
+      return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - r;
+    }
+    float surfaceHeight(float t){ float s=1.0-t; return pow(1.0 - s*s*s*s, 0.25); }
+
+    // sample the silk render-target (y-flipped to screen space)
+    vec3 sampleBg(vec2 screenUV){ return texture2D(uBgTex, vec2(screenUV.x, 1.0 - screenUV.y)).rgb; }
+    vec3 sampleBgBlurred(vec2 uv, float radius){
+      if (radius < 0.5) return sampleBg(uv);
+      vec3 sum=vec3(0.0); vec2 px=1.0/uResolution;
+      vec2 o[16];
+      o[0]=vec2(-0.94,-0.40);o[1]=vec2(0.95,-0.77);o[2]=vec2(-0.09,-0.93);o[3]=vec2(0.34,0.29);
+      o[4]=vec2(-0.92,-0.46);o[5]=vec2(-0.82,0.49);o[6]=vec2(-0.38,-0.56);o[7]=vec2(-0.13,0.85);
+      o[8]=vec2(0.90,0.41);o[9]=vec2(0.18,-0.30);o[10]=vec2(-0.01,-0.16);o[11]=vec2(0.60,0.71);
+      o[12]=vec2(0.50,-0.47);o[13]=vec2(0.81,0.05);o[14]=vec2(-0.32,-0.04);o[15]=vec2(-0.61,0.07);
+      for(int i=0;i<16;i++){ sum += sampleBg(uv + o[i]*radius*px); }
+      return sum/16.0;
+    }
+
+    void main(){
+      vec2 screenPx = vec2(vUv.x, 1.0 - vUv.y) * uResolution;
+      vec2 screenUV = screenPx / uResolution;
+      vec3 bg0 = sampleBg(screenUV);
+
+      vec2 p = screenPx - uGlassCenter;
+      vec2 halfSize = uGlassSize * 0.5;
+      float sd = sdRoundedRect(p, halfSize, uRadius);
+
+      if (sd > 0.0){ // outside glass: silk + soft contact shadow
+        float shadowAlpha = uShadow * exp(-sd*sd/800.0) * 0.5;
+        gl_FragColor = vec4(mix(bg0, vec3(0.0), shadowAlpha), 1.0);
+        return;
+      }
+
+      float distFromEdge = -sd;
+      float bezel = min(uBezel, min(uRadius, min(halfSize.x, halfSize.y)) - 1.0);
+      float t = clamp(distFromEdge / bezel, 0.0, 1.0);
+
+      float h = surfaceHeight(t);
+      float dt = 0.001;
+      float dh = (surfaceHeight(min(t+dt,1.0)) - h) / dt;
+      float slopeAngle = atan(dh * (uThickness / bezel));
+      float sinR = clamp(sin(slopeAngle)/uIOR, -1.0, 1.0);
+      float thetaR = asin(sinR);
+      float displacement = h * uThickness * (tan(slopeAngle) - tan(thetaR));
+
+      vec2 grad; float eps=0.5;
+      grad.x = sdRoundedRect(p+vec2(eps,0.0), halfSize, uRadius) - sd;
+      grad.y = sdRoundedRect(p+vec2(0.0,eps), halfSize, uRadius) - sd;
+      grad = normalize(grad);
+
+      vec2 offset = -grad * displacement / uResolution;
+      vec3 color = sampleBgBlurred(screenUV + offset, uBlur);
+
+      // specular rim
+      vec2 lightDir = normalize(vec2(0.5,-0.7));
+      float rimDot = abs(dot(grad, lightDir));
+      float rimFalloff = 1.0 - smoothstep(0.0, bezel*0.4, distFromEdge);
+      color += vec3(pow(rimDot*rimFalloff, 1.5) * uSpecular);
+      // inner shadow + bright inner rim
+      float innerShadow = 1.0 - smoothstep(0.0, bezel*0.6, distFromEdge);
+      color *= mix(1.0, 0.7, innerShadow*0.3);
+      float innerRim = smoothstep(0.0,2.0,distFromEdge) * (1.0 - smoothstep(2.0,5.0,distFromEdge));
+      color += vec3(innerRim * 0.15 * uSpecular);
+      // tint toward white
+      color = mix(color, vec3(1.0), uTint);
+
+      float alpha = smoothstep(0.0, 1.5, distFromEdge);
+      gl_FragColor = vec4(mix(bg0, color, alpha), 1.0);
+    }`,
+});
+glassScene.add(new THREE.Mesh(quad, glass));
+
+function updateSize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  const db = renderer.getDrawingBufferSize(new THREE.Vector2());
+  DBW = db.x; DBH = db.y;
+  rt.setSize(DBW, DBH);
+  silk.uniforms.u_resolution.value.set(DBW, DBH);
+  glass.uniforms.uResolution.value.set(DBW, DBH);
+  glass.uniforms.uGlassCenter.value.set(DBW/2, DBH/2);
+  glass.uniforms.uGlassSize.value.set(DBW, DBH);           // fill entire container
+  glass.uniforms.uRadius.value    = GLASS.radius * ratio;
+  glass.uniforms.uBezel.value     = GLASS.bezel * ratio;
+  glass.uniforms.uThickness.value = GLASS.thickness * ratio;
+}
+updateSize();
+window.addEventListener('resize', updateSize);
+
+function animate(){
+  requestAnimationFrame(animate);
+  silk.uniforms.u_time.value = performance.now()/1000;
+  renderer.setRenderTarget(rt);
+  renderer.render(silkScene, cam);
+  renderer.setRenderTarget(null);
+  renderer.render(glassScene, cam);
+}
+animate();
+</script>
+</body>
+</html>
