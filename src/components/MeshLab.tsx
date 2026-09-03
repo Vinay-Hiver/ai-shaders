@@ -401,7 +401,7 @@ export default function MeshLab({ embed = false, active = true }: { embed?: bool
       else gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,canvas.width,canvas.height,0,gl.RGBA,gl.UNSIGNED_BYTE,null)
     }
     window.addEventListener('resize', resize); resize()
-    const start = performance.now()
+    const start = performance.now() - 17 * 1000
     function frame(){
       raf = requestAnimationFrame(frame)
       if (!canvas) return
